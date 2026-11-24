@@ -143,6 +143,15 @@ struct SidebarView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
+                Button {
+                    appState.openOfficialWebsite()
+                } label: {
+                    Image(systemName: "safari")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("直接打开 Z-Library 官方网站")
+
                 if appState.isDemoMode, appState.session != nil {
                     Button {
                         appState.switchToLiveSession()

@@ -544,6 +544,29 @@ public actor EapiClient {
         }
     }
 
+    /// 并发探测官方入口域名，优先返回最快可用的域名
+    public func discoverFastestOfficialDomain(candidates: [String] = DomainPolicy.officialHosts) async -> DomainProbeResult? {
+        guard !candidates.isEmpty else { return nil }
+        return await withTaskGroup(of: DomainProbeResult.self) { group in
+            for host in candidates {
+                group.addTask {
+                    await self.probeDomain(host)
+                }
+            }
+            var fallback: DomainProbeResult?
+            for await result in group {
+                if result.reachable {
+                    group.cancelAll()
+                    return result
+                }
+                if fallback == nil {
+                    fallback = result
+                }
+            }
+            return fallback
+        }
+    }
+
     // MARK: - 下载链接解析（兼容直接文件流与 JSON 两阶段下发）
 
     /// 解析 `/eapi/book/{id}/{hash}/file`：返回实际下载目标请求（或直接下发的二进制数据）

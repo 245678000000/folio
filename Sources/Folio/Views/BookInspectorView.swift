@@ -122,11 +122,24 @@ struct BookInspectorView: View {
                     Image(systemName: saved ? "bookmark.fill" : "bookmark")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(saved ? Color.orange : Color.primary)
-                        .frame(width: 34, height: 24)
+                        .frame(width: 30, height: 24)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
                 .help(saved ? "取消云端收藏" : "加入云端收藏")
+
+                if !appState.isDemoMode {
+                    Button {
+                        appState.openBookOnOfficialSite(book)
+                    } label: {
+                        Image(systemName: "safari")
+                            .font(.system(size: 14, weight: .medium))
+                            .frame(width: 30, height: 24)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .help("在官方网站打开此书")
+                }
             }
 
             // 多格式下拉选择（存在多版本时展示）

@@ -2,6 +2,26 @@ import Foundation
 
 /// 服务器域名规范化与安全校验策略
 public enum DomainPolicy {
+    /// 官方常用入口域名（按 EAPI 直连可用优先级排序，用于自动探测与快捷切换）
+    public static let officialHosts: [String] = [
+        "zlib.bz",
+        "zlib.re",
+        "z101.by",
+        "z-lib.by",
+        "z-lib.gd",
+        "z-lib.gl",
+        "z-library.ec",
+        "z-library.qa",
+        "z-library.website",
+        "z-library.sk",
+        "1lib.sk",
+    ]
+
+    /// 默认首选官网入口
+    public static var defaultOfficialHost: String {
+        officialHosts[0]
+    }
+
     /// 校验单个域名标签（仅允许小写字母、数字与中间连字符）
     private static func isValidHost(_ host: String) -> Bool {
         let labels = host.split(separator: ".", omittingEmptySubsequences: false)

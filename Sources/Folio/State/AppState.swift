@@ -594,8 +594,13 @@ final class AppState {
         showToast("已成功连接 \(newSession.domain)", isError: false)
     }
 
-    /// Token / Cookie 直连登录（先验证 Profile 有效性）
-    func signInWithTokens(domain: String, userID: String, userKey: String) async throws {
+    /// Token / Cookie 直连登录（先验证 Profile 有效性，保留网页捕获的完整 Cookie）
+    func signInWithTokens(
+        domain: String,
+        userID: String,
+        userKey: String,
+        cookies: [String: String] = [:]
+    ) async throws {
         let host = try DomainPolicy.normalizeHost(domain)
         let cleanID = userID.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanKey = userKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -603,19 +608,52 @@ final class AppState {
             throw EapiError.invalidParameters("请完整填写 remix_userid 与 remix_userkey")
         }
 
-        let candidate = Session(remixUserID: cleanID, remixUserKey: cleanKey, domain: host)
+        let candidate = Session(
+            remixUserID: cleanID,
+            remixUserKey: cleanKey,
+            domain: host,
+            cookies: cookies
+        )
         let verifiedProfile = try await eapiClient.profile(session: candidate)
         let enrichedSession = Session(
             remixUserID: cleanID,
             remixUserKey: cleanKey,
             domain: host,
-            email: verifiedProfile.email
+            email: verifiedProfile.email,
+            cookies: cookies
         )
         try applyAuthenticatedSession(enrichedSession)
         self.profile = verifiedProfile
         await refreshAccountContext()
         await loadCurrentSection()
-        showToast("Token 验证通过，已连接 \(host)", isError: false)
+        showToast("登录验证通过，已连接 \(host)", isError: false)
+    }
+
+    /// 在系统默认浏览器中直接打开官方网站
+    func openOfficialWebsite(preferredDomain: String? = nil) {
+        let raw = preferredDomain ?? session?.domain ?? settings.lastDomain
+        let host = (try? DomainPolicy.normalizeHost(raw)) ?? DomainPolicy.defaultOfficialHost
+        if let url = URL(string: "https://\(host)/") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// 在系统默认浏览器中打开指定书籍的官方网页
+    func openBookOnOfficialSite(_ book: Book) {
+        let raw = session?.domain ?? settings.lastDomain
+        let host = (try? DomainPolicy.normalizeHost(raw)) ?? DomainPolicy.defaultOfficialHost
+        let urlString: String
+        if book.href.hasPrefix("http://") || book.href.hasPrefix("https://") {
+            urlString = book.href
+        } else if !book.href.isEmpty {
+            let path = book.href.hasPrefix("/") ? book.href : "/\(book.href)"
+            urlString = "https://\(host)\(path)"
+        } else {
+            urlString = "https://\(host)/book/\(book.id)/\(book.hash)"
+        }
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func applyAuthenticatedSession(_ newSession: Session) throws {
